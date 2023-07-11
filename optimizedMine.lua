@@ -30,6 +30,7 @@ end
 ---@param msg string The msg to put into the log
 ---@param level string the level of the log (INFO, WARN, ERROR), DEBUG = INFO
 local function write(msg, level)
+    ---@TODO if file exists then remove it to not use too much space on the server
     local str = string.format("\n%s %s: %s.", getTime(), level, msg)
 
     local handle = io.open("miner.log", "a")
@@ -326,19 +327,80 @@ local function moveBackward()
     end
 end
 
+--- inspect each sides  of the turtle to find ores
+---@return boolean, number whether there is ore and the number of turn it did to find it
+local function detectOreEachSide()
+    for i = 1, 4 do
+        local has_block, data = turtle.inspect()
+        if has_block then
+            if data and data.tags and (data.tags["forge:ores"] or
+                    data.tags["forge:raw_materials"] or
+                    data.tags["minecraft:coals"] or
+                    data.tags["forge:gems"] or
+                    data.tags["forge:ingots"] or
+                    data.tags["forge:dusts/redstone"])
+            then
+                return true, i
+            end
+        end
+        turtle.turnRight()
+    end
+    return false, 0
+end
+
+--- detect whether there is or on the up side
+---@return boolean whether there is ore
+local function detectOreUp()
+    local has_block, data = turtle.inspectUp()
+    if has_block then
+        if data and data.tags and (data.tags["forge:ores"] or
+                data.tags["forge:raw_materials"] or
+                data.tags["minecraft:coals"] or
+                data.tags["forge:gems"] or
+                data.tags["forge:ingots"] or
+                data.tags["forge:dusts/redstone"])
+        then
+            return true
+        else
+            return false
+        end
+    else
+        return false
+    end
+end
+
+
+--- detect whether there is or on the down side
+---@return boolean whether there is ore
+local function detectOreDown()
+    local has_block, data = turtle.inspectDown()
+    if has_block then
+        if data and data.tags and (data.tags["forge:ores"] or
+                data.tags["forge:raw_materials"] or
+                data.tags["minecraft:coals"] or
+                data.tags["forge:gems"] or
+                data.tags["forge:ingots"] or
+                data.tags["forge:dusts/redstone"])
+        then
+            return true
+        else
+            return false
+        end
+    else
+        return false
+    end
+end
+
 --- Inspect the block in front of the turtle
 ---@return boolean  whether there is a block or not
-local function inspectBlock(side)
+local function detectBlock(side)
     -- select the method to suck up
-    local has_block, has_solid_block, data = nil, nil, nil
+    local has_solid_block
     if side == "front" then
-        has_block, data = turtle.inspect()
         has_solid_block = turtle.detect()
     elseif side == "up" then
-        has_block, data = turtle.inspectUp()
         has_solid_block = turtle.detectUp()
     elseif side == "down" then
-        has_block, data = turtle.inspectDown()
         has_solid_block = turtle.detectDown()
     else
         error("It should not happened, its commonly known as a bug")
@@ -411,7 +473,7 @@ end
 local function miningStep(side)
     --local has_solid_block = false
     repeat
-        local has_block = inspectBlock(side)
+        local has_block = detectBlock(side)
         log(string.format("there is a block: %s", tostring(has_block)))
         if has_block then
             if side == "front" then
@@ -457,6 +519,7 @@ local function miningStep(side)
         --    has_solid_block = inspectBlock(side)
         end
         --log(string.format("there is solid block: %s", tostring(has_solid_block)))
+        sleep(0.5)
     until not has_block
 end
 
@@ -464,6 +527,7 @@ end
 local function mineStraight()
     for _ = 1, 65, 1 do
         -- do the front step
+        ---@TODO modify this to inspect each block of each side to find ores
         miningStep("front")
 
         moveForward()
@@ -519,6 +583,7 @@ end
 
 
 -- Instructions
+
 getTime()
 init_fuel()
 
