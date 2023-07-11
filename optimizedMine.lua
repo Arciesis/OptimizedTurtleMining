@@ -327,8 +327,16 @@ local function moveBackward()
     end
 end
 
---- inspect each sides  of the turtle to find ores
----@return boolean, number whether there is ore and the number of turn it did to find it
+--- inspect each sides  of the turtle to find ores i.e:
+---
+---1= front
+---
+---2= right
+---
+---3= back
+---
+---4:= left
+---@return boolean, number whether there is ore and the side which it found it
 local function detectOreEachSide()
     for i = 1, 4 do
         local has_block, data = turtle.inspect()
@@ -340,6 +348,10 @@ local function detectOreEachSide()
                     data.tags["forge:ingots"] or
                     data.tags["forge:dusts/redstone"])
             then
+                ---@TODO make the turtle turn until it found its original facing
+                for _ = i - 1, 1, -1 do
+                    turtle.turnLeft()
+                end
                 return true, i
             end
         end
@@ -369,7 +381,6 @@ local function detectOreUp()
     end
 end
 
-
 --- detect whether there is or on the down side
 ---@return boolean whether there is ore
 local function detectOreDown()
@@ -388,6 +399,75 @@ local function detectOreDown()
         end
     else
         return false
+    end
+end
+
+---
+---@param ore_path table the path of the ores
+local function orePathFinder(ore_path)
+    local has_ore_side, side = detectOreEachSide()
+    local has_ore_up = detectOreUp()
+    local has_ore_down = detectOreDown()
+    local has_ore = has_ore_side or has_ore_up or has_ore_down
+    local reverseSide
+
+    if not has_ore then
+
+        reverseSide = table.remove(ore_path)
+        if reverseSide then
+            print(string.format("removed side: %d", reverseSide))
+
+            -- 1: front => back
+            -- 2: right => left
+            -- 3: back => front
+            -- 4: left => right
+            if reverseSide == 1 then
+                turtle.back()
+            elseif reverseSide == 2 then
+                turtle.back()
+                turtle.turnLeft()
+            elseif reverseSide == 3 then
+                turtle.forward()
+            elseif reverseSide == 4 then
+                turtle.back()
+                turtle.turnRight()
+            end
+            orePathFinder(ore_path)
+        end
+
+    end
+
+    -- 1: front
+    -- 2: right
+    -- 3: back
+    -- 4: left
+    ---@TODO: make it gravel protected
+    if has_ore_side and side then
+        print(string.format("inserted side: %d", side))
+        if side == 1 then
+            turtle.dig()
+            turtle.forward()
+            table.insert(ore_path, side)
+        elseif side == 2 then
+            turtle.turnRight()
+            turtle.dig()
+            turtle.forward()
+            table.insert(ore_path, side)
+        elseif side == 3 then
+            turtle.turnRight()
+            turtle.turnRight()
+            turtle.dig()
+            turtle.forward()
+            table.insert(ore_path, side)
+        elseif side == 4 then
+            turtle.turnLeft()
+            turtle.dig()
+            turtle.forward()
+            table.insert(ore_path, side)
+        else
+            error("It should not happened, its commonly known as a bug")
+        end
+        orePathFinder(ore_path)
     end
 end
 
@@ -528,6 +608,8 @@ local function mineStraight()
     for _ = 1, 65, 1 do
         -- do the front step
         ---@TODO modify this to inspect each block of each side to find ores
+
+
         miningStep("front")
 
         moveForward()
@@ -591,7 +673,7 @@ init_fuel()
 local facing_dir = load_facing_direction()
 local mining_dir = load_mining_direction(facing_dir)
 
--- start)
+-- start
 -- north = -Z = 0
 -- west = -X = 1
 -- south = +Z = 2
