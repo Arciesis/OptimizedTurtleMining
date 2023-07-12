@@ -1,67 +1,5 @@
 -- Functions
 
--- logger
-
------ getTime the time for all the function of this file
------@return string the time in DD/MM/YYYY HH:MM:SS
---local function getTime()
---    -- %d%m%Y -> DD/MM/YYYY => %d-%m-%Y
---    -- %T => HH:MM:SS
---    local date = os.date("%d-%m-%Y %T")
---    local s_date
---    if type(date) ~= "string" then
---        -- meaning its a table
---        error("that should never happened but luanalysis ask me to")
---    else
---        s_date = date
---    end
---    return s_date
---end
-
------
------@param msg string The msg to put into the log
------@param level string the level of the log (INFO, WARN, ERROR), DEBUG = INFO
---local function write(msg, level)
---    --@TODO if file exists then remove it to not use too much space on the server
---    local str = string.format("\n%s %s: %s.", getTime(), level, msg)
---
---    local handle = io.open("miner.log", "a")
---    if handle then
---        io.output(handle)
---        io.write(str)
---        handle.flush(handle)
---        local has_been_closed = io.close(handle)
---
---        if not has_been_closed then
---            error(string.format("failed to close the log file"))
---        end
---        return has_been_closed
---    end
---    error("could not open the log file")
---end
-
------ Log a message into a file with the info level
------@param msg string the message to log with INFO level
---local function log(msg)
---    local level = "[INFO]"
---    write(msg, level)
---end
---
------ Log a message into a file with the warn level
------@param msg string the msg to log
---local function warn(msg)
---    local level = "[WARN]"
---    write(msg, level)
---end
---
------ Log a message into a file with the error level
------@param msg string the msg to log
---local function error(msg)
---    local level = "[ERROR]"
---    write(msg, level)
---end
------@TODO log make a log per file or something
-
 -- inventory
 
 --- Tell whether there are slot left in the inventory of the turtle
@@ -87,7 +25,6 @@ local function hasTrashable()
                     detailed_data.tags["forge:gems"] or
                     detailed_data.tags["forge:ingots"] or
                     detailed_data.tags["forge:dusts/redstone"])) then
-                --log("There is trash-able in the")
                 return true
             end
         end
@@ -99,7 +36,6 @@ local function makeSpace()
     for i = 1, 16, 1 do
         local detail = turtle.getItemDetail(i, true)
         if detail ~= nil then
-            -- print(textutils.serialise(detailed_data))
             if not (detail.tags and (detail.tags["forge:ores"] or detail.tags["forge:raw_materials"]
                     or detail.tags["minecraft:coals"] or detail.tags["forge:gems"]
                     or detail.tags["forge:ingots"] or detail.tags["forge:dusts/redstone"])) then
@@ -185,7 +121,6 @@ local function init_fuel()
         local ok, err = turtle.refuel()
         if ok then
             local new_level = turtle.getFuelLevel()
-            --log(("Reed %d, current level is %d\n"):format(new_level - level, new_level))
         else
             printError(err)
         end
@@ -199,7 +134,6 @@ local function refuelTurtle()
 
         if ok then
             local new_level = turtle.getFuelLevel()
-            --log(("Reed %d, current level is %d\n"):format(new_level - level, new_level))
         else
             printError(err)
         end
@@ -208,7 +142,7 @@ end
 
 -- cli
 
---- ask input to the user to know the facing direction
+---ask input to the user to know the facing direction
 ---@return number dir the facing pos as defined
 local function load_facing_direction()
     -- north = -Z = 0
@@ -269,34 +203,6 @@ local function load_mining_direction(facing_dir)
 
     return mining_dir
 end
-
------ ask for the user's input the X and Z of the starting point of the turtle
------@return number pos_x the X position of the turtle at the start
------@return number pos_z the Z position oft he turtle at the start
------@deprecated Should not be used unless a wireless system is integrated even then it's not useful
---local function load_start_point()
---    -- Ask for the x starting point of the turtle
---    local pos_x
---    while type(pos_x) ~= "number" do
---        print("X=")
---        local input_x = string.lower(read())
---        print("\n")
---
---        pos_x = tonumber(input_x)
---    end
---
---    -- Ask for the Z starting point of the turtle
---    local pos_z
---    while type(pos_z) ~= "number" do
---        print("Z=")
---        local input_z = string.lower(read())
---        print("\n")
---
---        pos_z = tonumber(input_z)
---    end
---
---    return pos_x, pos_z
---end
 
 -- optimizedMine
 
@@ -432,13 +338,10 @@ local function orePathFinder(ore_path)
     local has_ore = has_ore_side or has_ore_up or has_ore_down
     local reverse_side
 
-    --print(has_ore)
-    -- backward ore finding
+    -- backward pathfinding
     if not has_ore then
         reverse_side = table.remove(ore_path)
         if reverse_side then
-            --print(string.format("removed side: %d", reverse_side))
-
             -- 1: front => back
             -- 2: right => left
             -- 3: back => front
@@ -462,10 +365,8 @@ local function orePathFinder(ore_path)
             elseif reverse_side == 6 then
                 turtle.down()
             end
-            --orePathFinder(ore_path)
         end
 
-        --print(has_ore_side)
         -- forward ore finding, its returning insert the same heading facing_dir after each move
         -- 1: front
         -- 2: right
@@ -473,10 +374,8 @@ local function orePathFinder(ore_path)
         -- 4: left
         -- 5: down
         -- 6: up
-        ---@TODO: make it gravel protected
     elseif has_ore_side then
         if side then
-            --print(string.format("inserted side: %d", side))
             if side == 1 then
                 turtle.dig()
                 moveForward()
@@ -498,21 +397,16 @@ local function orePathFinder(ore_path)
                 moveForward()
                 table.insert(ore_path, side)
             end
-            --orePathFinder(ore_path)
         end
     elseif has_ore_down then
-        --print("inserted side: 5")
 
         turtle.digDown()
         turtle.down()
         table.insert(ore_path, 5)
-        --orePathFinder(ore_path)
     elseif has_ore_up then
-        --print("inserted side: 6")
         turtle.digUp()
         turtle.up()
         table.insert(ore_path, 6)
-        --orePathFinder(ore_path)
     end
 
     if ((not has_ore) and (#ore_path == 0)) then
@@ -522,88 +416,10 @@ local function orePathFinder(ore_path)
     end
 end
 
------ Inspect the block in front of the turtle
------@return boolean  whether there is a block or not
---local function detectBlock(side)
---    -- select the method to suck up
---    local has_solid_block
---    if side == "front" then
---        has_solid_block = turtle.detect()
---    elseif side == "up" then
---        has_solid_block = turtle.detectUp()
---    elseif side == "down" then
---        has_solid_block = turtle.detectDown()
---    else
---        error("It should not happened, its commonly known as a bug")
---    end
---    return has_solid_block
---
---    -- tell the turtle whether it need to suck the block or not
---    --if has_solid_block then
---    --    if has_block then
---    --        if data.tags and (data.tags["forge:ores"] or data.tags["forge:gems"] or
---    --                data.tags["forge:coals"] or data.tags["forge:raw_materials"] or
---    --                data.tags['forge:ingots']) then
---    --            -- need to suck
---    --            log("there is ore/coal/ingots/raw_materials in front of me")
---    --            return true
---    --        end
---    --    else
---    --        log("that's trash, don't suck")
---    --        return true
---    --    end
---    --    log("that's trash, don't suck")
---    --    return true
---    --else
---    --    log("that's trash, don't suck")
---    --    return false
---    --end
---end
-
------suck the item in front of the turtle
------@deprecated Not useful since the turtle suck the block automatically when digging
------@param side string the side which the turtle needs to suck, could be "front", "up" or "down"
------@return boolean has_been_picked_up whether the item has been sucked up
---local function suckBlock(side)
---    local has_been_picked_up, reason = nil, nil
---
---    if side == "front" then
---        has_been_picked_up, reason = turtle.suck()
---
---        if has_been_picked_up then
---            --log("an item has been sucked ")
---        else
---            --warn(string.format("no item has been sucked: ", reason))
---        end
---    elseif side == "up" then
---        has_been_picked_up, reason = turtle.suckUp()
---
---        if has_been_picked_up then
---            --log("an item has been sucked ")
---        else
---            --warn(string.format("no item has been sucked: ", reason))
---        end
---    elseif side == "down" then
---        has_been_picked_up, reason = turtle.suckDown()
---
---        if has_been_picked_up then
---            --log("an item has been sucked ")
---        else
---            --warn(string.format("no item has been sucked: ", reason))
---        end
---    end
---
---    if not has_been_picked_up then
---        error(string.format("Error: the block has not been picked up: %s", reason))
---    end
---    return has_been_picked_up
---end
-
 --- mine straight for 64 blocks and then come backward
 local function mineStraight()
     local ores
     for _ = 1, 65, 1 do
-        --miningStep("front")
         ores = {}
         orePathFinder(ores)
         moveForward()
@@ -625,7 +441,7 @@ local function mineStraight()
         end
 
         refuelTurtle()
-        ---@TODO implement that feature
+        --@TODO implement that feature
         --local fuel_level = turtle.getFuelLevel()
         --if fuel_level < travel_dist then
         --    -- return home
@@ -672,7 +488,6 @@ init_fuel()
 local facing_dir = load_facing_direction()
 local mining_dir = load_mining_direction(facing_dir)
 
--- start
 -- north = -Z = 0
 -- west = -X = 1
 -- south = +Z = 2
@@ -697,7 +512,6 @@ while has_available_slot do
     if (facing_dir == 0 and mining_dir == 1) or (facing_dir == 1 and mining_dir == 2) or
             (facing_dir == 2 and mining_dir == 3) or (facing_dir == 3 and mining_dir == 0) then
         -- if the turtle needs to mine to its left at the beginning
-        --warn("New entry on the mine")
         local side = "left"
         turtle.turnLeft()
         mineStraight()
@@ -706,7 +520,6 @@ while has_available_slot do
     elseif (facing_dir == 0 and mining_dir == 3) or (facing_dir == 1 and mining_dir == 0) or
             (facing_dir == 2 and mining_dir == 1) or (facing_dir == 3 and mining_dir == 2) then
         -- if the turtle needs to mine to its right at the beginning
-        --warn("New entry on the mine")
         local side = "right"
         turtle.turnRight()
         mineStraight()
