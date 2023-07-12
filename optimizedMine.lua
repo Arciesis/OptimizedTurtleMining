@@ -322,7 +322,7 @@ local function orePathFinder(ore_path)
     local has_ore = has_ore_side or has_ore_up or has_ore_down
     local reverse_side
 
-    -- backward pathfinding
+    -- backward pathfinding, its deleted the last entry of the table
     if not has_ore then
         reverse_side = table.remove(ore_path)
         if reverse_side then
@@ -351,7 +351,7 @@ local function orePathFinder(ore_path)
             end
         end
 
-        -- forward ore finding, its returning insert the same heading facing_dir after each move
+        -- forward ore finding, it insert the direction one the table
         -- 1: front
         -- 2: right
         -- 3: back
@@ -404,6 +404,7 @@ end
 local function mineStraight()
     local ores
     for _ = 1, 65, 1 do
+        --TODO: detect if there is_slot_taken and blocks tonumber skip the unnecessary orePathFinder
         ores = {}
         orePathFinder(ores)
         moveForward()
