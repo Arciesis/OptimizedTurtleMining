@@ -15,7 +15,6 @@ local function getTime()
     -- %T => HH:MM:SS
     --local date = os.date("%d-%m-%Y %T")
     local date = os.date("%d-%m-%Y %T")
-    print(date)
     local s_date
     if type(date) ~= "string" then
         -- meaning its and table
@@ -680,7 +679,6 @@ end
 
 -- Instructions
 
-getTime()
 init_fuel()
 
 -- local posX, posZ = load_start_point()
