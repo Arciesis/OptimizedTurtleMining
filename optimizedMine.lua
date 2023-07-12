@@ -101,11 +101,13 @@ local function askForFuel()
     until input == "y"
 end
 
+--- refuel the turtle
 local function refuelTurtle()
-    local level = turtle.getFuelLevel()
-    if level % 80 == 0 or level <= 65000 then
+    for i = 1, 16 do
+        turtle.select(i)
         turtle.refuel()
     end
+    turtle.select(1)
 end
 
 --- first refuel of the turtle.
@@ -535,7 +537,6 @@ local width = askForWidth()
 --local fuel_level = turtle.getFuelLevel()
 local has_available_slot = hasAvailableSlot()
 local is_limit_reached = isLimitReached(length)
-refuelTurtle()
 while has_available_slot and not is_limit_reached do
     if (facing_dir == 0 and mining_dir == 1) or (facing_dir == 1 and mining_dir == 2) or
             (facing_dir == 2 and mining_dir == 3) or (facing_dir == 3 and mining_dir == 0) then
