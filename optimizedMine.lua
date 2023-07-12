@@ -1,3 +1,7 @@
+-- globals
+
+cpt_main_way = tonumber(0)
+
 -- inventory
 
 --- Tell whether there are slot left in the inventory of the turtle
@@ -402,7 +406,6 @@ local function mineStraight()
         orePathFinder(ores)
         moveForward()
 
-
         -- do the up step
         moveUp()
         ores = {}
@@ -419,9 +422,9 @@ local function mineStraight()
             makeSpace()
         end
 
-        refuelTurtle()
     end
 
+    refuelTurtle()
     makeSpace()
 
     for _ = 1, 65, 1 do
@@ -438,8 +441,10 @@ local function mine3BlocksStraight()
         turtle.digUp()
         turtle.digDown()
     end
+    cpt_main_way = cpt_main_way + 3
 end
 
+---
 local function shift(side)
     if side == "left" then
         turtle.turnRight()
@@ -452,6 +457,16 @@ local function shift(side)
     end
 end
 
+--- Tell whether the limit has been reached
+---@return boolean whether the limit reached
+local function isLimitReached(limit)
+    --@TODO: Could been ask for that limit
+    if cpt_main_way < limit then
+        return false
+    else
+        return true
+    end
+end
 
 -- Instructions
 
@@ -480,8 +495,9 @@ local mining_dir = load_mining_direction(facing_dir)
 -- (facing_dir == 3 and mining_dir == 2)
 --local fuel_level = turtle.getFuelLevel()
 local has_available_slot = hasAvailableSlot()
+local is_limit_reached = isLimitReached(128)
 refuelTurtle()
-while has_available_slot do
+while has_available_slot and not is_limit_reached do
     if (facing_dir == 0 and mining_dir == 1) or (facing_dir == 1 and mining_dir == 2) or
             (facing_dir == 2 and mining_dir == 3) or (facing_dir == 3 and mining_dir == 0) then
         -- if the turtle needs to mine to its left at the beginning
@@ -498,5 +514,12 @@ while has_available_slot do
         mineStraight()
         shift(side)
     end
+
     has_available_slot = hasAvailableSlot()
+    is_limit_reached = isLimitReached(128)
+end
+
+--- need to return home
+for _ = cpt_main_way, 1, -1 do
+    moveBackward()
 end
