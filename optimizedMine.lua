@@ -231,7 +231,7 @@ local function load_facing_direction()
 
         dir = tonumber(input)
 
-        if dir then
+        if not dir then
             print(("Error: you must enter a valid number\n you typed '%s'"):format(input))
             dir = -1
         end
@@ -262,7 +262,7 @@ local function load_mining_direction(facing_dir)
 
         mining_dir = tonumber(input)
 
-        if mining_dir == nil then
+        if not mining_dir then
             print(("Error: you must enter a valid number\nYou typed %s"):format(input))
             print("")
             mining_dir = -1
@@ -308,6 +308,7 @@ end
 
 -- optimizedMine
 
+---move the turtle forward, gravel insensitive
 local function moveForward()
     repeat
         local moved = turtle.forward()
@@ -317,14 +318,43 @@ local function moveForward()
     until moved
 end
 
+---move the turtle back, gravel insensitive
 local function moveBackward()
-    local moved = turtle.back()
-    if not moved then
-        error("returning home, the turtle could not moved")
-        -- return_home()
-        error("")
-    end
+    local moved
+    repeat
+        moved = turtle.back()
+        if not moved then
+            turtle.turnRight()
+            turtle.turnRight()
+            turtle.dig()
+            turtle.turnRight()
+        end
+    until moved
+
 end
+
+---move the turtle up, gravel insensitive
+local function moveUp()
+    local moved
+    repeat
+        moved = turtle.up()
+        if not moved then
+            turtle.digUp()
+        end
+    until moved
+end
+
+---move the turtle down, gravel insensitive (event I don't see why gravel is a problem here)
+local function moveDown()
+    local moved
+    repeat
+        moved = turtle.down()
+        if not moved then
+            turtle.digDown()
+        end
+    until moved
+end
+
 
 --- inspect each sides  of the turtle to find ores i.e:
 ---
@@ -415,7 +445,7 @@ local function orePathFinder(ore_path)
     if not has_ore then
         reverse_side = table.remove(ore_path)
         if reverse_side then
-            print(string.format("removed side: %d", reverse_side))
+            --print(string.format("removed side: %d", reverse_side))
 
             -- 1: front => back
             -- 2: right => left
@@ -454,7 +484,7 @@ local function orePathFinder(ore_path)
         ---@TODO: make it gravel protected
     elseif has_ore_side then
         if side then
-            print(string.format("inserted side: %d", side))
+            --print(string.format("inserted side: %d", side))
             if side == 1 then
                 turtle.dig()
                 moveForward()
@@ -479,14 +509,14 @@ local function orePathFinder(ore_path)
             --orePathFinder(ore_path)
         end
     elseif has_ore_down then
-        print("inserted side: 5")
+        --print("inserted side: 5")
 
         turtle.digDown()
         turtle.down()
         table.insert(ore_path, 5)
         --orePathFinder(ore_path)
     elseif has_ore_up then
-        print("inserted side: 6")
+        --print("inserted side: 6")
         turtle.digUp()
         turtle.up()
         table.insert(ore_path, 6)
@@ -577,77 +607,32 @@ local function suckBlock(side)
     return has_been_picked_up
 end
 
---- Do one of the three step of the mining phase (dig (and suck))
----@param side string the side which must be compute (front, up, down)
-local function miningStep(side)
-    --local has_solid_block = false
-    repeat
-        local has_block = detectBlock(side)
-        log(string.format("there is a block: %s", tostring(has_block)))
-        if has_block then
-            if side == "front" then
-                local has_dug, reason = turtle.dig()
-                log(string.format("turtle has mined front: %s", tostring(has_dug)))
-                if not has_dug then
-                    error(string.format("turtle has not dug: %s", reason))
-                    error(string.format("turtle has not dug: %s", reason))
-                end
-
-                --sleep(0.5)
-                --has_solid_block = turtle.detect()
-                --log(string.format("solid block front: ", has_solid_block))
-
-            elseif side == "up" then
-                local has_dug, reason = turtle.digUp()
-
-                log(string.format("turtle has mined up: %s", tostring(has_dug)))
-                if not has_dug then
-                    error(string.format("turtle has not dug: %s", reason))
-                end
-
-                --sleep(0.5)
-                --has_solid_block = turtle.detectUp()
-                --log(string.format(string.format("has block up: ", has_solid_block)))
-
-            elseif side == "down" then
-                local has_dug, reason = turtle.digDown()
-
-                log(string.format("turtle has mined down: %s", tostring(has_dug)))
-                if not has_dug then
-                    error(string.format("turtle has not dug: %s", reason))
-                    error(string.format("turtle has not dug: %s", reason))
-                end
-
-                --sleep(0.5)
-                --has_solid_block = turtle.detectDown()
-                --log(string.format("has block down: ", has_solid_block))
-                --
-            end
-            --else
-            --    sleep(0.5)
-            --    has_solid_block = inspectBlock(side)
-        end
-        --log(string.format("there is solid block: %s", tostring(has_solid_block)))
-        sleep(0.5)
-    until not has_block
-end
-
 --- mine straight for 64 blocks and then come backward
 local function mineStraight()
+    local ores
     for _ = 1, 65, 1 do
         -- do the front step
         ---@TODO modify this to inspect each block of each side to find ores
 
 
-        miningStep("front")
-
+        --miningStep("front")
+        ores = {}
+        orePathFinder(ores)
         moveForward()
 
         -- do the up step
-        miningStep("up")
+        --miningStep("up")
+        moveUp()
+        ores = {}
+        orePathFinder(ores)
+        moveDown()
 
         -- do the final step: the down one
-        miningStep("down")
+        --miningStep("down")
+        moveDown()
+        ores = {}
+        orePathFinder(ores)
+        moveUp()
 
         if not hasAvailableSlot then
             makeSpace()
