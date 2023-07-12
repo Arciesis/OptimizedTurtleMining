@@ -6,7 +6,6 @@
 local function hasAvailableSlot()
     for i = 1, 16 do
         if turtle.getItemCount(i) == 0 then
-            --log("there is space in the inventory")
             return true
         end
     end
@@ -20,7 +19,9 @@ local function makeSpace()
         if detail ~= nil then
             if not (detail.tags and (detail.tags["forge:ores"] or detail.tags["forge:raw_materials"]
                     or detail.tags["minecraft:coals"] or detail.tags["forge:gems"]
-                    or detail.tags["forge:ingots"] or detail.tags["forge:dusts/redstone"])) then
+                    or detail.tags["forge:ingots"] or detail.tags["forge:dusts/redstone"]
+                    or detail.tags["forge:storage_blocks/coal"]
+                    or detail.tags["forge:storage_blocks/charcoal"])) then
                 turtle.select(i)
                 turtle.drop()
             end
@@ -116,7 +117,7 @@ end
 ---refuel the turtle
 local function refuelTurtle()
     local level = turtle.getFuelLevel()
-    if level <= 240 then
+    if level <= 400 then
         local ok, err = turtle.refuel()
 
         if not ok then
@@ -404,10 +405,10 @@ end
 local function mineStraight()
     local ores
     for _ = 1, 65, 1 do
-        --TODO: detect if there is_slot_taken and blocks tonumber skip the unnecessary orePathFinder
         ores = {}
         orePathFinder(ores)
         moveForward()
+
 
         -- do the up step
         moveUp()
@@ -426,12 +427,6 @@ local function mineStraight()
         end
 
         refuelTurtle()
-        --@TODO implement that feature
-        --local fuel_level = turtle.getFuelLevel()
-        --if fuel_level < travel_dist then
-        --    -- returnHome()
-        --    break
-        --end
     end
 
     makeSpace()
