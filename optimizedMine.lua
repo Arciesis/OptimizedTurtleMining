@@ -309,13 +309,12 @@ end
 -- optimizedMine
 
 local function moveForward()
-    local moved = turtle.forward()
-    if not moved then
-        error("returning home, the turtle could not moved")
-        ---@TODO need to implement this
-        -- return_home()
-        error("")
-    end
+    repeat
+        local moved = turtle.forward()
+        if not moved then
+            turtle.dig()
+        end
+    until moved
 end
 
 local function moveBackward()
@@ -458,23 +457,23 @@ local function orePathFinder(ore_path)
             print(string.format("inserted side: %d", side))
             if side == 1 then
                 turtle.dig()
-                turtle.forward()
+                moveForward()
                 table.insert(ore_path, side)
             elseif side == 2 then
                 turtle.turnRight()
                 turtle.dig()
-                turtle.forward()
+                moveForward()
                 table.insert(ore_path, side)
             elseif side == 3 then
                 turtle.turnRight()
                 turtle.turnRight()
                 turtle.dig()
-                turtle.forward()
+                moveForward()
                 table.insert(ore_path, side)
             elseif side == 4 then
                 turtle.turnLeft()
                 turtle.dig()
-                turtle.forward()
+                moveForward()
                 table.insert(ore_path, side)
             end
             --orePathFinder(ore_path)
@@ -624,9 +623,9 @@ local function miningStep(side)
                 --log(string.format("has block down: ", has_solid_block))
                 --
             end
-        --else
-        --    sleep(0.5)
-        --    has_solid_block = inspectBlock(side)
+            --else
+            --    sleep(0.5)
+            --    has_solid_block = inspectBlock(side)
         end
         --log(string.format("there is solid block: %s", tostring(has_solid_block)))
         sleep(0.5)
