@@ -1,9 +1,8 @@
--- Functions
-
 -- inventory
 
 --- Tell whether there are slot left in the inventory of the turtle
 --- assume the inventory has been sorted before the call of that function
+---@return boolean whether there is available slot in the inventory of the turtle
 local function hasAvailableSlot()
     for i = 1, 16 do
         if turtle.getItemCount(i) == 0 then
@@ -14,24 +13,7 @@ local function hasAvailableSlot()
     return false
 end
 
-local function hasTrashable()
-    for i = 1, 16, 1 do
-        if turtle.getItemCount(i) ~= 0 then
-            local detailed_data = turtle.getItemDetail(i, true)
-
-            if not (detailed_data.tags and (detailed_data.tags["forge:ores"] or
-                    detailed_data.tags["forge:raw_materials"] or
-                    detailed_data.tags["minecraft:coals"] or
-                    detailed_data.tags["forge:gems"] or
-                    detailed_data.tags["forge:ingots"] or
-                    detailed_data.tags["forge:dusts/redstone"])) then
-                return true
-            end
-        end
-    end
-    return false
-end
-
+--- make space in the inventory by dropping the unnecessary items
 local function makeSpace()
     for i = 1, 16, 1 do
         local detail = turtle.getItemDetail(i, true)
@@ -59,7 +41,8 @@ local function isSlotTaken(slot)
     end
 end
 
---- place a stack of ore/gems/redstone et in the first slot possible
+--- place a stack of ore/gems/redstone/coal et in the first slot possible
+---iterate 16 * 16 times so it takes time
 local function sortStacks()
     for i = 1, 16 do
         for j = 1, 16 do
@@ -73,6 +56,7 @@ local function sortStacks()
 end
 
 ---stack the item together if possible
+---iterate 16 * 16 times so it takes time
 local function stackItems()
     for i = 1, 16 do
         for j = 1, 16 do
@@ -92,6 +76,7 @@ local function stackItems()
     end
 end
 
+--- sortInventory the inventory by stacking items together if possible
 local function sortInventory()
     local has_available_slot = hasAvailableSlot()
     if not has_available_slot then
@@ -103,6 +88,7 @@ end
 
 -- fuel
 
+--- prompt the user to remind their to refuel the turtle before it start
 local function askForFuel()
     repeat
         print("\nDid you put fuel in the first slot ? [Y/n]")
@@ -110,6 +96,8 @@ local function askForFuel()
     until input == "y"
 end
 
+--- first refuel of the turtle.
+---Prompt
 local function init_fuel()
     askForFuel()
     local level = turtle.getFuelLevel()
@@ -119,22 +107,19 @@ local function init_fuel()
 
     if level % 80 == 0 or turtle.getFuelLevel == 0 then
         local ok, err = turtle.refuel()
-        if ok then
-            local new_level = turtle.getFuelLevel()
-        else
+        if not ok then
             printError(err)
         end
     end
 end
 
+---refuel the turtle
 local function refuelTurtle()
     local level = turtle.getFuelLevel()
-    if level < 160 then
+    if level <= 240 then
         local ok, err = turtle.refuel()
 
-        if ok then
-            local new_level = turtle.getFuelLevel()
-        else
+        if not ok then
             printError(err)
         end
     end
@@ -252,7 +237,6 @@ local function moveDown()
         end
     until moved
 end
-
 
 --- inspect each sides  of the turtle to find ores i.e:
 ---
@@ -444,7 +428,7 @@ local function mineStraight()
         --@TODO implement that feature
         --local fuel_level = turtle.getFuelLevel()
         --if fuel_level < travel_dist then
-        --    -- return home
+        --    -- returnHome()
         --    break
         --end
     end
