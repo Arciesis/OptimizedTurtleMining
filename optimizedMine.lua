@@ -402,71 +402,101 @@ local function detectOreDown()
     end
 end
 
----
+--- A recursive function that dig all the ores and go back with the exact same path
 ---@param ore_path table the path of the ores
 local function orePathFinder(ore_path)
     local has_ore_side, side = detectOreEachSide()
     local has_ore_up = detectOreUp()
     local has_ore_down = detectOreDown()
     local has_ore = has_ore_side or has_ore_up or has_ore_down
-    local reverseSide
+    local reverse_side
 
+    --print(has_ore)
+    -- backward ore finding
     if not has_ore then
-
-        reverseSide = table.remove(ore_path)
-        if reverseSide then
-            print(string.format("removed side: %d", reverseSide))
+        reverse_side = table.remove(ore_path)
+        if reverse_side then
+            print(string.format("removed side: %d", reverse_side))
 
             -- 1: front => back
             -- 2: right => left
             -- 3: back => front
             -- 4: left => right
-            if reverseSide == 1 then
+            -- 5: down => up
+            -- 6: up => down
+            if reverse_side == 1 then
                 turtle.back()
-            elseif reverseSide == 2 then
+            elseif reverse_side == 2 then
                 turtle.back()
                 turtle.turnLeft()
-            elseif reverseSide == 3 then
-                turtle.forward()
-            elseif reverseSide == 4 then
+            elseif reverse_side == 3 then
+                turtle.back()
+                turtle.turnLeft()
+                turtle.turnLeft()
+            elseif reverse_side == 4 then
                 turtle.back()
                 turtle.turnRight()
+            elseif reverse_side == 5 then
+                turtle.up()
+            elseif reverse_side == 6 then
+                turtle.down()
             end
-            orePathFinder(ore_path)
+            --orePathFinder(ore_path)
         end
 
+        --print(has_ore_side)
+        -- forward ore finding, its returning insert the same heading facing_dir after each move
+        -- 1: front
+        -- 2: right
+        -- 3: back
+        -- 4: left
+        -- 5: down
+        -- 6: up
+        ---@TODO: make it gravel protected
+    elseif has_ore_side then
+        if side then
+            print(string.format("inserted side: %d", side))
+            if side == 1 then
+                turtle.dig()
+                turtle.forward()
+                table.insert(ore_path, side)
+            elseif side == 2 then
+                turtle.turnRight()
+                turtle.dig()
+                turtle.forward()
+                table.insert(ore_path, side)
+            elseif side == 3 then
+                turtle.turnRight()
+                turtle.turnRight()
+                turtle.dig()
+                turtle.forward()
+                table.insert(ore_path, side)
+            elseif side == 4 then
+                turtle.turnLeft()
+                turtle.dig()
+                turtle.forward()
+                table.insert(ore_path, side)
+            end
+            --orePathFinder(ore_path)
+        end
+    elseif has_ore_down then
+        print("inserted side: 5")
+
+        turtle.digDown()
+        turtle.down()
+        table.insert(ore_path, 5)
+        --orePathFinder(ore_path)
+    elseif has_ore_up then
+        print("inserted side: 6")
+        turtle.digUp()
+        turtle.up()
+        table.insert(ore_path, 6)
+        --orePathFinder(ore_path)
     end
 
-    -- 1: front
-    -- 2: right
-    -- 3: back
-    -- 4: left
-    ---@TODO: make it gravel protected
-    if has_ore_side and side then
-        print(string.format("inserted side: %d", side))
-        if side == 1 then
-            turtle.dig()
-            turtle.forward()
-            table.insert(ore_path, side)
-        elseif side == 2 then
-            turtle.turnRight()
-            turtle.dig()
-            turtle.forward()
-            table.insert(ore_path, side)
-        elseif side == 3 then
-            turtle.turnRight()
-            turtle.turnRight()
-            turtle.dig()
-            turtle.forward()
-            table.insert(ore_path, side)
-        elseif side == 4 then
-            turtle.turnLeft()
-            turtle.dig()
-            turtle.forward()
-            table.insert(ore_path, side)
-        else
-            error("It should not happened, its commonly known as a bug")
-        end
+    if ((not has_ore) and (#ore_path == 0)) then
+        return
+    else
         orePathFinder(ore_path)
     end
 end
