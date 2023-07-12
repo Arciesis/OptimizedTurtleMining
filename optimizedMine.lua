@@ -136,7 +136,7 @@ local function load_facing_direction()
     repeat
         print("In which direction the turtle is facing ?\n[0]: North\n[1]: West\n[2]: South\n[3]: East")
         local input = string.lower(read())
-        print("\n")
+        print("")
 
         dir = tonumber(input)
 
@@ -185,6 +185,42 @@ local function load_mining_direction(facing_dir)
     until (mining_dir >= 0 and mining_dir <= 3) and type(mining_dir) == "number"
 
     return mining_dir
+end
+
+local function askForLength()
+    local input
+    local length
+
+    repeat
+        print("What length the turtle should mine ?\n")
+        input = string.lower(read())
+
+        length = tonumber(input)
+
+        if length and length >= 0 then
+            return length
+        else
+            print("Error: type a valid number (i.e: >= 0)")
+            length = -1
+        end
+    until type(length) == "number" and length >= 0
+end
+
+local function askForWidth()
+    local input, width
+    repeat
+        print("What width the turtle should mine ?\n")
+        input = string.lower(read())
+
+        width = tonumber(input)
+
+        if width and width >= 0 then
+            return width
+        else
+            print("Error: type a valid number (i.e: >= 0)")
+            width = -1
+        end
+    until type(width) == "number" and width >= 0
 end
 
 -- optimizedMine
@@ -399,9 +435,9 @@ local function orePathFinder(ore_path)
 end
 
 --- mine straight for 64 blocks and then come backward
-local function mineStraight()
+local function mineStraight(limit)
     local ores
-    for _ = 1, 65, 1 do
+    for _ = 1, limit, 1 do
         ores = {}
         orePathFinder(ores)
         moveForward()
@@ -427,7 +463,7 @@ local function mineStraight()
     refuelTurtle()
     makeSpace()
 
-    for _ = 1, 65, 1 do
+    for _ = 1, limit, 1 do
         moveBackward()
     end
 
@@ -475,6 +511,9 @@ init_fuel()
 -- local posX, posZ = load_start_point()
 local facing_dir = load_facing_direction()
 local mining_dir = load_mining_direction(facing_dir)
+local length = askForLength()
+local width = askForWidth()
+
 
 -- north = -Z = 0
 -- west = -X = 1
@@ -495,7 +534,7 @@ local mining_dir = load_mining_direction(facing_dir)
 -- (facing_dir == 3 and mining_dir == 2)
 --local fuel_level = turtle.getFuelLevel()
 local has_available_slot = hasAvailableSlot()
-local is_limit_reached = isLimitReached(128)
+local is_limit_reached = isLimitReached(length)
 refuelTurtle()
 while has_available_slot and not is_limit_reached do
     if (facing_dir == 0 and mining_dir == 1) or (facing_dir == 1 and mining_dir == 2) or
@@ -503,7 +542,7 @@ while has_available_slot and not is_limit_reached do
         -- if the turtle needs to mine to its left at the beginning
         local side = "left"
         turtle.turnLeft()
-        mineStraight()
+        mineStraight(width)
         shift(side)
 
     elseif (facing_dir == 0 and mining_dir == 3) or (facing_dir == 1 and mining_dir == 0) or
@@ -511,12 +550,12 @@ while has_available_slot and not is_limit_reached do
         -- if the turtle needs to mine to its right at the beginning
         local side = "right"
         turtle.turnRight()
-        mineStraight()
+        mineStraight(width)
         shift(side)
     end
 
     has_available_slot = hasAvailableSlot()
-    is_limit_reached = isLimitReached(128)
+    is_limit_reached = isLimitReached(length)
 end
 
 --- need to return home
