@@ -97,34 +97,27 @@ local function askForFuel()
     until input == "y"
 end
 
+local function refuelTurtle()
+    local level = turtle.getFuelLevel()
+    if level % 80 == 0 or level <= 65000 then
+        turtle.refuel()
+    end
+end
+
 --- first refuel of the turtle.
 ---Prompt
 local function init_fuel()
     askForFuel()
     local level = turtle.getFuelLevel()
     if level == "unlimited" then
-        error("Turtle does not need n")
+        error("Turtle does not need fuel")
     end
 
-    if level % 80 == 0 or turtle.getFuelLevel == 0 then
-        local ok, err = turtle.refuel()
-        if not ok then
-            printError(err)
-        end
-    end
+    refuelTurtle()
 end
 
 ---refuel the turtle
-local function refuelTurtle()
-    local level = turtle.getFuelLevel()
-    if level <= 400 then
-        local ok, err = turtle.refuel()
 
-        if not ok then
-            printError(err)
-        end
-    end
-end
 
 -- cli
 
