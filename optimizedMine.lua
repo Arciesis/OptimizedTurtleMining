@@ -225,6 +225,37 @@ local function askForWidth()
     until type(width) == "number" and width >= 0
 end
 
+--- ask for the user's input the X and Z of the starting point of the turtle
+---@return number, number, number the original pos of the turtle (X, Y, Z)
+local function askForStartPoint()
+    -- Ask for the x starting point of the turtle
+    local pos_x, input_x
+    while type(pos_x) ~= "number" do
+        print("X=")
+        input_x = string.lower(read())
+        print("")
+        pos_x = tonumber(input_x)
+    end
+    -- Ask for the Z starting point of the turtle
+    local pos_z, input_z
+    while type(pos_z) ~= "number" do
+        print("Z=")
+        input_z = string.lower(read())
+        print("")
+        pos_z = tonumber(input_z)
+    end
+
+    local pos_y, input_y
+    while type(pos_y) ~= "number" do
+        print("Y=")
+        input_y = string.lower(read())
+        print("")
+        pos_y = tonumber(input_y)
+    end
+
+    return pos_x, pos_y, pos_z
+end
+
 -- optimizedMine
 
 ---move the turtle forward, gravel insensitive
@@ -498,7 +529,6 @@ end
 --- Tell whether the limit has been reached
 ---@return boolean whether the limit reached
 local function isLimitReached(limit)
-    --@TODO: Could been ask for that limit
     if cpt_main_way < limit then
         return false
     else
@@ -515,7 +545,7 @@ local facing_dir = load_facing_direction()
 local mining_dir = load_mining_direction(facing_dir)
 local length = askForLength()
 local width = askForWidth()
-
+local ori_x, ori_y, ori_z = askForStartPoint()
 
 -- north = -Z = 0
 -- west = -X = 1
