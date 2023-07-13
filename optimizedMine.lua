@@ -260,49 +260,22 @@ end
 
 ---move the turtle forward, gravel insensitive
 local function moveForward()
-    repeat
-        local moved = turtle.forward()
-        if not moved then
-            turtle.dig()
-        end
-    until moved
+
 end
 
 ---move the turtle back, gravel insensitive
 local function moveBackward()
-    local moved
-    repeat
-        moved = turtle.back()
-        if not moved then
-            turtle.turnRight()
-            turtle.turnRight()
-            turtle.dig()
-            turtle.turnRight()
-        end
-    until moved
 
 end
 
 ---move the turtle up, gravel insensitive
 local function moveUp()
-    local moved
-    repeat
-        moved = turtle.up()
-        if not moved then
-            turtle.digUp()
-        end
-    until moved
+
 end
 
 ---move the turtle down, gravel insensitive (event I don't see why gravel is a problem here)
 local function moveDown()
-    local moved
-    repeat
-        moved = turtle.down()
-        if not moved then
-            turtle.digDown()
-        end
-    until moved
+
 end
 
 --- inspect each sides  of the turtle to find ores i.e:
@@ -380,6 +353,7 @@ local function detectOreDown()
     end
 end
 
+--@TODO:updateDist modify to user the move functions instead
 --- A recursive function that dig all the ores and go back with the exact same path
 ---@param ore_path table the path of the ores
 local function orePathFinder(ore_path)
