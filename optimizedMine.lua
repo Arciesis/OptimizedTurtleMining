@@ -157,10 +157,11 @@ function SMovementManagement.new(ori_pos, heading_dir, mining_dir)
         repeat
             moved = turtle.back()
             if not moved then
-                turtle.turnRight()
-                turtle.turnRight()
+                self.right()
+                self.right()
                 turtle.dig()
-                turtle.turnRight()
+                self.right()
+                self.right()
             end
         until moved
         --self.dist_from_ori_pos.
@@ -281,7 +282,7 @@ function SMovementManagement.new(ori_pos, heading_dir, mining_dir)
             if pos_z ~= 0then
                 self.moveBackward()
             end
-        until pos_z ~= 0
+        until pos_z == 0
     end
 
     --- return home, if is_full_home is true then it return to the start point otherwise
@@ -429,7 +430,7 @@ end
 local function refuelTurtle()
     for i = 1, 16 do
         turtle.select(i)
-        turtle.refuel()
+        turtle.refuel(turtle.getItemCount())
     end
     turtle.select(1)
 end
@@ -581,26 +582,6 @@ local function askForStartPoint()
 end
 
 -- optimizedMine
-
----move the turtle forward, gravel insensitive
-local function moveForward()
-
-end
-
----move the turtle back, gravel insensitive
-local function moveBackward()
-
-end
-
----move the turtle up, gravel insensitive
-local function moveUp()
-
-end
-
----move the turtle down, gravel insensitive (event I don't see why gravel is a problem here)
-local function moveDown()
-
-end
 
 --- inspect each sides  of the turtle to find ores i.e:
 ---
@@ -766,24 +747,24 @@ local function orePathFinder(ore_path)
 end
 
 --- mine straight for 64 blocks and then come backward
-local function mineStraight(limit)
+local function mineStraight(limit, move_management)
     local ores
     for _ = 1, limit, 1 do
         ores = {}
         orePathFinder(ores)
-        moveForward()
+        move_management.moveForward()
 
         -- do the up step
-        moveUp()
+        move_management.moveUp()
         ores = {}
         orePathFinder(ores)
-        moveDown()
+        move_management.moveDown()
 
         -- do the final step: the down one
-        moveDown()
+        move_management.moveDown()
         ores = {}
         orePathFinder(ores)
-        moveUp()
+        move_management.moveUp()
 
         if not hasAvailableSlot then
             makeSpace()
@@ -795,16 +776,16 @@ local function mineStraight(limit)
     makeSpace()
 
     for _ = 1, limit, 1 do
-        moveBackward()
+        move_management.moveBackward()
     end
 
     sortInventory()
 end
 
-local function mine3BlocksStraight()
+local function mine3BlocksStraight(move_management)
     for _ = 1, 3 do
         turtle.dig()
-        moveForward()
+        move_management.moveForward()
         turtle.digUp()
         turtle.digDown()
     end
@@ -812,13 +793,13 @@ local function mine3BlocksStraight()
 end
 
 ---
-local function shift(side)
+local function shift(side, move_management)
     if side == "left" then
-        turtle.turnRight()
-        mine3BlocksStraight()
+        move_management.right()
+        mine3BlocksStraight(move_management)
     elseif side == "right" then
-        turtle.turnLeft()
-        mine3BlocksStraight()
+        move_management.left()
+        mine3BlocksStraight(move_management)
     else
         error("Should not happened")
     end
@@ -844,6 +825,9 @@ local mining_dir = load_mining_direction(facing_dir)
 local length = askForLength()
 local width = askForWidth()
 local ori_x, ori_y, ori_z = askForStartPoint()
+local ori_pos = Vec.new(ori_x, ori_y, ori_z)
+local move_management = SMovementManagement.new(ori_pos, facing_dir, mining_dir)
+
 
 -- north = -Z = 0
 -- west = -X = 1
@@ -870,17 +854,17 @@ while has_available_slot and not is_limit_reached do
             (facing_dir == 2 and mining_dir == 3) or (facing_dir == 3 and mining_dir == 0) then
         -- if the turtle needs to mine to its left at the beginning
         local side = "left"
-        turtle.turnLeft()
-        mineStraight(width)
-        shift(side)
+        move_management.left()
+        mineStraight(width, move_management)
+        shift(side, move_management)
 
     elseif (facing_dir == 0 and mining_dir == 3) or (facing_dir == 1 and mining_dir == 0) or
             (facing_dir == 2 and mining_dir == 1) or (facing_dir == 3 and mining_dir == 2) then
         -- if the turtle needs to mine to its right at the beginning
         local side = "right"
-        turtle.turnRight()
-        mineStraight(width)
-        shift(side)
+        move_management.right()
+        mineStraight(width, move_management)
+        shift(side, move_management)
     end
 
     has_available_slot = hasAvailableSlot()
@@ -888,6 +872,4 @@ while has_available_slot and not is_limit_reached do
 end
 
 --- need to return home
-for _ = cpt_main_way, 1, -1 do
-    moveBackward()
-end
+move_management.returnHome(false)
