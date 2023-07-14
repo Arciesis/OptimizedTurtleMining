@@ -2,6 +2,330 @@
 
 cpt_main_way = tonumber(0)
 
+-- My own vector implementation
+local Vec = {}
+
+--- Create a new instance of Vec
+---@field x number the X axis
+---@field y number the y axis
+---@field z number the z axis
+function Vec.new(x, y, z)
+    local self = {}
+    self.x = x
+    self.y = y
+    self.z = z
+
+    function self.toCCVec()
+        return vector.new(x, y, z)
+    end
+
+    function self.getX()
+        return x
+    end
+
+    function self.getY()
+        return y
+    end
+
+    function self.getZ()
+        return z
+    end
+
+    function self.addX()
+        x = x + 1
+    end
+
+    function self.subX()
+        x = x - 1
+    end
+
+    ---@public
+    function self.addY()
+        y = y + 1
+    end
+
+    ---@public
+    function self.subY()
+        y = y - 1
+    end
+
+    function self.addZ()
+        z = z + 1
+    end
+
+    function self.subZ()
+        z = z - 1
+    end
+
+    return self
+end
+
+-- Movement management related
+
+local SMovementManagement = {}
+
+local SPos_mt = { __index = SMovementManagement }
+
+local instance
+
+--- Singleton Pos management
+---@param ori_pos Vec the original pos of the turtle
+---@param heading_dir number the dir of the length
+---@param mining_dir number the dir of the width
+---@public
+function SMovementManagement.new(ori_pos, heading_dir, mining_dir)
+    if instance then
+        return instance
+    end
+
+    local self = {}
+    self.ORIGINAL_POS = ori_pos
+    self.HEADING_DIR = heading_dir
+    self.MINING_DIR = mining_dir
+    self.dist_from_ori_pos = Vec.new(0, 0, 0)
+    self.actual_heading = heading_dir
+    local level = 0
+    local is_mining = true
+
+    ---@param move string the direction of the movement
+    ---@private
+    function self.updateDist(move)
+        if self.actual_heading == 0 then
+            if move == "forth" then
+                self.dist_from_ori_pos.subZ()
+            elseif move == "back" then
+                self.dist_from_ori_pos.addZ()
+            else
+                error("updateDist")
+            end
+        elseif self.actual_heading == 1 then
+            if move == "forth" then
+                self.dist_from_ori_pos.subX()
+            elseif move == "back" then
+                self.dist_from_ori_pos.addX()
+            else
+                error("updateDist")
+            end
+        elseif self.actual_heading == 2 then
+            if move == "forth" then
+                self.dist_from_ori_pos.addZ()
+            elseif move == "back" then
+                self.dist_from_ori_pos.subZ()
+            else
+                error("updateDist")
+            end
+        elseif self.actual_heading == 3 then
+            if move == "forth" then
+                self.dist_from_ori_pos.addX()
+            elseif move == "back" then
+                self.dist_from_ori_pos.subX()
+            else
+                error("updateDist")
+            end
+        else
+            error("updateDist")
+        end
+    end
+
+    function self.left()
+        turtle.turnLeft()
+        self.actual_heading = ((self.actual_heading + 1) % 4)
+    end
+
+    function self.right()
+        turtle.turnRight()
+        self.actual_heading = ((self.actual_heading - 1) % 4)
+    end
+
+    ---move the turtle forward, gravel insensitive
+    ---@public
+    function self.moveForward()
+        local moved
+        repeat
+            moved = turtle.forward()
+            if not moved then
+                turtle.dig()
+            end
+        until moved
+        self.updateDist("forth")
+    end
+
+    ---move the turtle back, gravel insensitive
+    ---@public
+    function self.moveBackward()
+        local moved
+        repeat
+            moved = turtle.back()
+            if not moved then
+                turtle.turnRight()
+                turtle.turnRight()
+                turtle.dig()
+                turtle.turnRight()
+            end
+        until moved
+        --self.dist_from_ori_pos.
+        self.updateDist("back")
+    end
+
+    ---move the turtle up, gravel insensitive
+    ---@public
+    function self.moveUp()
+        local moved
+        repeat
+            moved = turtle.up()
+            if not moved then
+                turtle.digUp()
+            end
+        until moved
+        self.dist_from_ori_pos.addY()
+    end
+
+    ---move the turtle down, gravel insensitive
+    ---@public
+    function self.moveDown()
+        local moved
+        repeat
+            moved = turtle.down()
+            if not moved then
+                turtle.digDown()
+            end
+        until moved
+        self.dist_from_ori_pos.subY()
+    end
+
+    local function returnXHome()
+        -- north = -Z = 0
+        -- west = -X = 1
+        -- south = +Z = 2
+        -- east = +X = 3
+        repeat
+            local pos_x = self.dist_from_ori_pos.getX()
+            if pos_x ~= 0 then
+                self.moveBackward()
+            end
+        until pos_x == 0
+    end
+
+    ---@private
+    local function returnYHome()
+        repeat
+            if self.dist_from_ori_pos.getY() < 0 then
+                self.moveUp()
+            elseif self.dist_from_ori_pos.getY() > 0 then
+                -- is_full_home this case really necessary ?
+                -- I think if I want to dig up in the future...
+                self.moveDown()
+            end
+        until self.dist_from_ori_pos.getY() == 0
+    end
+
+    --- Return to the middle level of a mine
+    local function returnToMiningLevel()
+        local pos_y = math.abs(self.dist_from_ori_pos.getY())
+        local has_to_move = ((pos_y % 4) ~= 0)
+        local has_to_move_up, has_to_move_down
+
+        if not has_to_move then
+            return
+        end
+
+        if level == 0 then
+            if pos_y == 0 then
+                return
+            end
+
+            pos_y = self.dist_from_ori_pos.getY()
+            if pos_y < 0 then
+                repeat
+                    self.moveUp()
+                    pos_y = self.dist_from_ori_pos.getY()
+                until pos_y == 0
+                return
+            end
+
+            if pos_y > 0 then
+                repeat
+                    self.moveDown()
+                    pos_y = self.dist_from_ori_pos.getY()
+                until pos_y == 0
+            end
+        end
+
+        has_to_move_up = ((level * 4) - pos_y) < 0
+        has_to_move_down = ((level * 4) - pos_y) > 0
+        if has_to_move_up then
+            repeat
+                self.moveUp()
+
+                pos_y = math.abs(self.dist_from_ori_pos.getY())
+                has_to_move_up = ((level * 4) - pos_y) < 0
+            until has_to_move_up
+            return
+        end
+
+        if has_to_move_down then
+            repeat
+                self.moveDown()
+
+                pos_y = math.abs(self.dist_from_ori_pos.getY())
+                has_to_move_down = ((level * 4) - pos_y) > 0
+            until has_to_move_down
+            return
+        end
+    end
+
+    ---@private
+    local function returnZHome()
+        repeat
+            local pos_z = self.dist_from_ori_pos.getZ()
+            if pos_z ~= 0then
+                self.moveBackward()
+            end
+        until pos_z ~= 0
+    end
+
+    --- return home, if is_full_home is true then it return to the start point otherwise
+    ---it just return to the center
+    ---@param is_full_home boolean whether it need to return to the start point
+    function self.returnHome(is_full_home)
+        returnToMiningLevel()
+
+        if is_mining then
+            -- north = -Z = 0
+            -- west = -X = 1
+            -- south = +Z = 2
+            -- east = +X = 3
+            if self.MINING_DIR == 0 or self.MINING_DIR == 2 then
+                returnZHome()
+                returnXHome()
+            elseif self.MINING_DIR == 1 or self.MINING_DIR == 3 then
+                returnXHome()
+                returnZHome()
+            else
+                error("returnHome")
+            end
+            returnYHome()
+            return
+        end
+
+        if self.HEADING_DIR == 0 or self.HEADING_DIR == 2 then
+            returnZHome()
+        elseif self.HEADING_DIR == 1 or self.HEADING_DIR == 3 then
+            returnXHome()
+        else
+            error("returnHome")
+        end
+
+        if is_full_home then
+            returnYHome()
+        end
+    end
+
+    setmetatable(self, SPos_mt)
+    instance = self
+    return instance
+end
+
 -- inventory
 
 --- Tell whether there are slot left in the inventory of the turtle
