@@ -619,7 +619,7 @@ end
 --- ask for the user's input the X and Z of the starting point of the turtle
 ---@return number, number, number the original pos of the turtle (X, Y, Z)
 local function askForStartPoint()
-    -- Ask for the x starting point of the turtle
+    -- Ask for the X starting point of the turtle
     local pos_x, input_x
     while type(pos_x) ~= "number" do
         print("X=")
@@ -627,6 +627,17 @@ local function askForStartPoint()
         print("")
         pos_x = tonumber(input_x)
     end
+
+    -- Ask for the Y starting point
+    local pos_y, input_y
+    while type(pos_y) ~= "number" do
+        print("Y=")
+        input_y = string.lower(read())
+        print("")
+        pos_y = tonumber(input_y)
+    end
+
+
     -- Ask for the Z starting point of the turtle
     local pos_z, input_z
     while type(pos_z) ~= "number" do
@@ -636,13 +647,7 @@ local function askForStartPoint()
         pos_z = tonumber(input_z)
     end
 
-    local pos_y, input_y
-    while type(pos_y) ~= "number" do
-        print("Y=")
-        input_y = string.lower(read())
-        print("")
-        pos_y = tonumber(input_y)
-    end
+
 
     return pos_x, pos_y, pos_z
 end
