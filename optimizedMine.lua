@@ -1,7 +1,3 @@
--- globals
-
---cpt_main_way = tonumber(0)
-
 -- My own vector implementation
 local Vec = {}
 
@@ -465,6 +461,25 @@ local function sortInventory()
     end
 end
 
+--- This function has to be called after the inventory has been cleaned up
+---emptyInventory the inventory into a chest except for fuel and refuel
+local function emptyInventory()
+    for i = 1, 16 do
+        local data = turtle.getItemDetail(i, true)
+        local count
+        if data then
+            if data.tags and not(data.tags["minecraft:coals"] or
+                data.tags["forge:storage_blocks/coal"] or
+                data.tags["forge:storage_blocks/charcoal"]) then
+                count = turtle.getItemCount(i)
+                turtle.select(i)
+                turtle.dropDown(count)
+            end
+        end
+    end
+    turtle.select(1)
+end
+
 -- fuel
 
 --- prompt the user to remind their to refuel the turtle before it start
@@ -477,9 +492,11 @@ end
 
 --- refuel the turtle
 local function refuelTurtle()
+    local count
     for i = 1, 16 do
         turtle.select(i)
-        turtle.refuel(turtle.getItemCount())
+        count = turtle.getItemCount(i)
+        turtle.refuel(count)
     end
     turtle.select(1)
 end
@@ -877,7 +894,6 @@ local moves = SMovementManagement.new(ori_pos, facing_dir, mining_dir, length, w
 -- (facing_dir == 1 and mining_dir == 0)
 -- (facing_dir == 2 and mining_dir == 1)
 -- (facing_dir == 3 and mining_dir == 2)
---local fuel_level = turtle.getFuelLevel()
 local has_available_slot = hasAvailableSlot()
 local is_limit_reached = moves.isLengthLimitReached()
 while has_available_slot and not is_limit_reached do
@@ -904,3 +920,4 @@ end
 
 --- need to return home
 moves.returnHome(false)
+emptyInventory()
