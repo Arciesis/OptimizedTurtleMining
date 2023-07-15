@@ -1,6 +1,6 @@
 -- globals
 
-cpt_main_way = tonumber(0)
+--cpt_main_way = tonumber(0)
 
 -- My own vector implementation
 local Vec = {}
@@ -64,7 +64,7 @@ end
 
 local SMovementManagement = {}
 
-local SPos_mt = { __index = SMovementManagement }
+--local SPos_mt = { __index = SMovementManagement }
 
 local instance
 
@@ -72,8 +72,10 @@ local instance
 ---@param ori_pos Vec the original pos of the turtle
 ---@param heading_dir number the dir of the length
 ---@param mining_dir number the dir of the width
+---@param length_limit number the dist which the turtle has to mine the main way
+---@param width_limit number the dist the turtle has to mine the mining way
 ---@public
-function SMovementManagement.new(ori_pos, heading_dir, mining_dir)
+SMovementManagement.new = function(ori_pos, heading_dir, mining_dir, length_limit, width_limit)
     if instance then
         return instance
     end
@@ -82,6 +84,8 @@ function SMovementManagement.new(ori_pos, heading_dir, mining_dir)
     self.ORIGINAL_POS = ori_pos
     self.HEADING_DIR = heading_dir
     self.MINING_DIR = mining_dir
+    self.LENGTH_LIMIT = length_limit
+    self.WIDTH_LIMIT = width_limit
     self.dist_from_ori_pos = Vec.new(0, 0, 0)
     self.actual_heading = heading_dir
     local level = 0
@@ -305,6 +309,10 @@ function SMovementManagement.new(ori_pos, heading_dir, mining_dir)
             else
                 error("returnHome")
             end
+            if not is_full_home then
+                return
+            end
+
             returnYHome()
             return
         end
@@ -322,7 +330,48 @@ function SMovementManagement.new(ori_pos, heading_dir, mining_dir)
         end
     end
 
-    setmetatable(self, SPos_mt)
+    --- Tell whether the length limit has been reached
+    ---@return boolean whether the limit has been reached
+    function self.isLengthLimitReached()
+        -- north = -Z = 0
+        -- west = -X = 1
+        -- south = +Z = 2
+        -- east = +X = 3
+        if self.HEADING_DIR == 0 or self.HEADING_DIR == 2 then
+            local pos_z = self.dist_from_ori_pos.getZ()
+            if math.abs(pos_z) < self.LENGTH_LIMIT then
+                return false
+            end
+        end
+
+        if self.HEADING_DIR == 1 or self.HEADING_DIR == 3 then
+            local pos_x = self.dist_from_ori_pos.getX()
+            if math.abs(pos_x) < self.LENGTH_LIMIT  then
+                return false
+            end
+        end
+        return true
+    end
+
+    --function self.isWidthLimitReached()
+    --    -- north = -Z = 0
+    --    -- west = -X = 1
+    --    -- south = +Z = 2
+    --    -- east = +X = 3
+    --    if self.HEADING_DIR == 0 or self.MINING_DIR == 2 then
+    --        if self.LENGTH_LIMIT <= self.dist_from_ori_pos.getZ() then
+    --            self.returnHome(false)
+    --        end
+    --    end
+    --
+    --    if self.HEADING_DIR == 1 or self.MINING_DIR == 3 then
+    --        if self.LENGTH_LIMIT <= self.dist_from_ori_pos.getX() then
+    --            self.returnHome(false)
+    --        end
+    --    end
+    --end
+
+    --setmetatable(self, SPos_mt)
     instance = self
     return instance
 end
@@ -687,11 +736,8 @@ local function orePathFinder(ore_path, moves)
                 moves.right()
                 moves.right()
             elseif reverse_side == 4 then
-                turtle.back()
-                turtle.turnRight()
-
                 moves.moveBackward()
-                moves.turnRight()
+                moves.right()
             elseif reverse_side == 5 then
                 moves.moveUp()
             elseif reverse_side == 6 then
@@ -743,9 +789,9 @@ local function orePathFinder(ore_path, moves)
 end
 
 --- mine straight for 64 blocks and then come backward
-local function mineStraight(limit, move_management)
+local function mineStraight(move_management)
     local ores
-    for _ = 1, limit, 1 do
+    for _ = 1, move_management.WIDTH_LIMIT, 1 do
         ores = {}
         orePathFinder(ores, move_management)
         move_management.moveForward()
@@ -771,7 +817,7 @@ local function mineStraight(limit, move_management)
     refuelTurtle()
     makeSpace()
 
-    for _ = 1, limit, 1 do
+    for _ = 1, move_management.WIDTH_LIMIT, 1 do
         move_management.moveBackward()
     end
 
@@ -785,7 +831,6 @@ local function mine3BlocksStraight(move_management)
         turtle.digUp()
         turtle.digDown()
     end
-    cpt_main_way = cpt_main_way + 3
 end
 
 ---
@@ -801,16 +846,6 @@ local function shift(side, move_management)
     end
 end
 
---- Tell whether the limit has been reached
----@return boolean whether the limit reached
-local function isLimitReached(limit)
-    if cpt_main_way < limit then
-        return false
-    else
-        return true
-    end
-end
-
 -- Instructions
 
 init_fuel()
@@ -822,7 +857,7 @@ local length = askForLength()
 local width = askForWidth()
 local ori_x, ori_y, ori_z = askForStartPoint()
 local ori_pos = Vec.new(ori_x, ori_y, ori_z)
-local moves = SMovementManagement.new(ori_pos, facing_dir, mining_dir)
+local moves = SMovementManagement.new(ori_pos, facing_dir, mining_dir, length, width)
 
 
 -- north = -Z = 0
@@ -844,14 +879,14 @@ local moves = SMovementManagement.new(ori_pos, facing_dir, mining_dir)
 -- (facing_dir == 3 and mining_dir == 2)
 --local fuel_level = turtle.getFuelLevel()
 local has_available_slot = hasAvailableSlot()
-local is_limit_reached = isLimitReached(length)
+local is_limit_reached = moves.isLengthLimitReached()
 while has_available_slot and not is_limit_reached do
     if (facing_dir == 0 and mining_dir == 1) or (facing_dir == 1 and mining_dir == 2) or
             (facing_dir == 2 and mining_dir == 3) or (facing_dir == 3 and mining_dir == 0) then
         -- if the turtle needs to mine to its left at the beginning
         local side = "left"
         moves.left()
-        mineStraight(width, moves)
+        mineStraight(moves)
         shift(side, moves)
 
     elseif (facing_dir == 0 and mining_dir == 3) or (facing_dir == 1 and mining_dir == 0) or
@@ -859,12 +894,12 @@ while has_available_slot and not is_limit_reached do
         -- if the turtle needs to mine to its right at the beginning
         local side = "right"
         moves.right()
-        mineStraight(width, moves)
+        mineStraight(moves)
         shift(side, moves)
     end
 
     has_available_slot = hasAvailableSlot()
-    is_limit_reached = isLimitReached(length)
+    is_limit_reached = moves.isLengthLimitReached()
 end
 
 --- need to return home
