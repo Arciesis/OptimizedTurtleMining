@@ -84,7 +84,7 @@ SMovementManagement.new = function(ori_pos, heading_dir, mining_dir, length_limi
     self.WIDTH_LIMIT = width_limit
     self.dist_from_ori_pos = Vec.new(0, 0, 0)
     self.actual_heading = heading_dir
-    local level = 0
+    self.level = 0
     local is_mining = true
 
     ---@param move string the direction of the movement
@@ -279,7 +279,7 @@ SMovementManagement.new = function(ori_pos, heading_dir, mining_dir, length_limi
     local function returnZHome()
         repeat
             local pos_z = self.dist_from_ori_pos.getZ()
-            if pos_z ~= 0then
+            if pos_z ~= 0 then
                 self.moveBackward()
             end
         until pos_z == 0
@@ -342,7 +342,7 @@ SMovementManagement.new = function(ori_pos, heading_dir, mining_dir, length_limi
 
         if self.HEADING_DIR == 1 or self.HEADING_DIR == 3 then
             local pos_x = self.dist_from_ori_pos.getX()
-            if math.abs(pos_x) < self.LENGTH_LIMIT  then
+            if math.abs(pos_x) < self.LENGTH_LIMIT then
                 return false
             end
         end
@@ -468,12 +468,12 @@ local function emptyInventory()
         local data = turtle.getItemDetail(i, true)
         local count
         if data then
-            if data.tags and not(data.tags["minecraft:coals"] or
-                data.tags["forge:storage_blocks/coal"] or
-                data.tags["forge:storage_blocks/charcoal"]) then
+            if data.tags and not (data.tags["minecraft:coals"] or
+                    data.tags["forge:storage_blocks/coal"] or
+                    data.tags["forge:storage_blocks/charcoal"]) then
                 count = turtle.getItemCount(i)
                 turtle.select(i)
-                turtle.dropDown(count)
+                turtle.dropUp(count)
             end
         end
     end
@@ -646,8 +646,6 @@ local function askForStartPoint()
         print("")
         pos_z = tonumber(input_z)
     end
-
-
 
     return pos_x, pos_y, pos_z
 end
@@ -868,6 +866,24 @@ local function shift(side, move_management)
     end
 end
 
+---Mine below the turtle to reach the next level (aka stage)
+---@param moves SMovementManagement the movement management singleton
+local function mine4BlocksBelow(moves)
+    moves.level = moves.level + 1
+
+    for i = 1, (moves.level * 4) do
+        local actual_pos_y = moves.ORIGINAL_POS.getY() - math.abs(moves.dist_from_ori_pos.getY())
+        if actual_pos_y == -57 and ((i % 4) ~= 3) then
+            moves.returnHome(true)
+            break
+        end
+
+        moves.moveDown()
+
+    end
+
+end
+
 -- Instructions
 
 init_fuel()
@@ -899,30 +915,36 @@ local moves = SMovementManagement.new(ori_pos, facing_dir, mining_dir, length, w
 -- (facing_dir == 1 and mining_dir == 0)
 -- (facing_dir == 2 and mining_dir == 1)
 -- (facing_dir == 3 and mining_dir == 2)
-local has_available_slot = hasAvailableSlot()
-local is_limit_reached = moves.isLengthLimitReached()
-while has_available_slot and not is_limit_reached do
-    if (facing_dir == 0 and mining_dir == 1) or (facing_dir == 1 and mining_dir == 2) or
-            (facing_dir == 2 and mining_dir == 3) or (facing_dir == 3 and mining_dir == 0) then
-        -- if the turtle needs to mine to its left at the beginning
-        local side = "left"
-        moves.left()
-        mineStraight(moves)
-        shift(side, moves)
+local max_y = moves.ORIGINAL_POS.getY() - math.abs(moves.dist_from_ori_pos.getY())
+while max_y > -57 do
+    local has_available_slot = hasAvailableSlot()
+    local is_limit_reached = moves.isLengthLimitReached()
+    while has_available_slot and not is_limit_reached do
+        if (facing_dir == 0 and mining_dir == 1) or (facing_dir == 1 and mining_dir == 2) or
+                (facing_dir == 2 and mining_dir == 3) or (facing_dir == 3 and mining_dir == 0) then
+            -- if the turtle needs to mine to its left at the beginning
+            local side = "left"
+            moves.left()
+            mineStraight(moves)
+            shift(side, moves)
 
-    elseif (facing_dir == 0 and mining_dir == 3) or (facing_dir == 1 and mining_dir == 0) or
-            (facing_dir == 2 and mining_dir == 1) or (facing_dir == 3 and mining_dir == 2) then
-        -- if the turtle needs to mine to its right at the beginning
-        local side = "right"
-        moves.right()
-        mineStraight(moves)
-        shift(side, moves)
+        elseif (facing_dir == 0 and mining_dir == 3) or (facing_dir == 1 and mining_dir == 0) or
+                (facing_dir == 2 and mining_dir == 1) or (facing_dir == 3 and mining_dir == 2) then
+            -- if the turtle needs to mine to its right at the beginning
+            local side = "right"
+            moves.right()
+            mineStraight(moves)
+            shift(side, moves)
+        end
+
+        has_available_slot = hasAvailableSlot()
+        is_limit_reached = moves.isLengthLimitReached()
     end
+    max_y = moves.ORIGINAL_POS.getY() - math.abs(moves.dist_from_ori_pos.getY())
+    moves.returnHome(true)
+    makeSpace()
+    --- need to return home moves.returnHome(true)
+    emptyInventory()
 
-    has_available_slot = hasAvailableSlot()
-    is_limit_reached = moves.isLengthLimitReached()
+    mine4BlocksBelow(moves)
 end
-
---- need to return home
-moves.returnHome(false)
-emptyInventory()
